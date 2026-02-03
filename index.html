@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/JMERLSLOGO.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    
+    <title>JMERLS | Inventory Management System</title>
+    <meta name="title" content="JMERLS | Inventory Management System" />
+    <meta name="description" content="A professional and efficient inventory management solution for tracking stock, sales, and system logs." />
+    <meta name="theme-color" content="#11212D" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://jmerls-inventory.com/" />
+    <meta property="og:title" content="JMERLS | Inventory Management System" />
+    <meta property="og:description" content="Efficiently manage your products, monitor stock levels, and record sales in real-time." />
+    <meta property="og:image" content="/og-image.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    <style>
+      /* Smooth scrolling and font anti-aliasing */
+      html {
+        scroll-behavior: smooth;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      
+      /* Preloader styling while React is loading */
+      #initial-loader {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-center: center;
+        background-color: #f8fafc;
+        z-index: 9999;
+        transition: opacity 0.5s ease;
+      }
+      
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid #cbd5e1;
+        border-top: 3px solid #11212D;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>
+      <div style="padding: 2rem; text-align: center; font-family: sans-serif;">
+        <h1>JavaScript is Required</h1>
+        <p>Please enable JavaScript in your browser settings to continue using the JMERLS Inventory Management System.</p>
+      </div>
+    </noscript>
+
+    <div id="initial-loader">
+      <div class="spinner"></div>
+    </div>
+
+    <div id="root"></div>
+
+    <script type="module" src="/src/main.jsx"></script>
+
+    <script>
+      window.addEventListener('load', () => {
+        const loader = document.getElementById('initial-loader');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => loader.remove(), 500);
+        }
+      });
+    </script>
+  </body>
+</html>
