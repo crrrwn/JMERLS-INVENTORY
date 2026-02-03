@@ -76,14 +76,17 @@ export default function Users() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       {u.id !== currentUser?.uid && (
-                        <select
-                          value={u.role || 'user'}
-                          onChange={(e) => setRole(u.id, e.target.value)}
-                          className="rounded-lg border border-gray-200 px-2 py-1 text-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-                        >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                        </select>
+                        <div className="select-wrapper select-wrapper-sm inline-block min-w-[7rem]">
+                          <select
+                            value={u.role || 'user'}
+                            onChange={(e) => setRole(u.id, e.target.value)}
+                            className="select-input select-input-sm"
+                          >
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                          </select>
+                          <Icon icon="solar:alt-arrow-down-linear" className="select-arrow" />
+                        </div>
                       )}
                     </td>
                   </tr>

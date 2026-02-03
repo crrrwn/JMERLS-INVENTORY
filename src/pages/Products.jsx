@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Icon } from '@iconify/react'
 import Card from '../components/ui/Card'
 import {
@@ -18,8 +18,98 @@ const STATUS_CONFIG = {
 }
 
 const inputClass =
-  'w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm text-[#11212D] transition-all placeholder:text-[#9BA8AB] focus:border-[#4A5C6A] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#4A5C6A]/5'
+  'w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3 text-sm text-[#11212D] transition-all placeholder:text-[#9BA8AB] focus:border-[#4A5C6A] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#4A5C6A]/5 min-h-[48px] sm:min-h-0'
 const labelClass = 'mb-1.5 block text-xs font-bold uppercase tracking-wider text-[#4A5C6A]'
+
+/** Custom size dropdown — styled open state */
+function SizeDropdown({ value, options, onChange }) {
+  const [open, setOpen] = useState(false)
+  const wrapperRef = useRef(null)
+  useEffect(() => {
+    const fn = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="select-input w-full text-left flex items-center justify-between gap-2"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <span className="text-[#11212D] font-medium">{value}</span>
+        <Icon
+          icon="solar:alt-arrow-down-linear"
+          className={`h-5 w-5 shrink-0 text-[#4A5C6A] transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <div
+          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-gray-200 bg-white py-2 shadow-xl shadow-[#11212D]/10"
+          role="listbox"
+        >
+          {options.map((s) => (
+            <button
+              key={s}
+              type="button"
+              role="option"
+              aria-selected={value === s}
+              onClick={() => { onChange(s); setOpen(false) }}
+              className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                value === s ? 'bg-[#11212D]/5 text-[#11212D] font-medium' : 'text-[#4A5C6A] hover:bg-gray-50'
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** Convert image file to base64 data URL (resized if needed so it fits in Firestore ~1MB) */
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      let dataUrl = e.target.result
+      if (dataUrl.length > 900000) {
+        const img = new Image()
+        img.onload = () => {
+          const max = 600
+          let w = img.width
+          let h = img.height
+          if (w > max || h > max) {
+            if (w > h) {
+              h = Math.round((h * max) / w)
+              w = max
+            } else {
+              w = Math.round((w * max) / h)
+              h = max
+            }
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = w
+          canvas.height = h
+          const ctx = canvas.getContext('2d')
+          ctx.drawImage(img, 0, 0, w, h)
+          resolve(canvas.toDataURL('image/jpeg', 0.75))
+        }
+        img.onerror = () => resolve(dataUrl)
+        img.src = dataUrl
+      } else {
+        resolve(dataUrl)
+      }
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 // --- Sub-component: Product Form ---
 function ProductForm({ product, onClose, onSaved }) {
@@ -31,17 +121,41 @@ function ProductForm({ product, onClose, onSaved }) {
     size: product?.size || SIZES[0],
     color: product?.color || '',
     quantity: product?.quantity ?? 0,
+    imageUrl: product?.imageUrl || '',
   })
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(product?.imageUrl || '')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { user, userProfile } = useAuth()
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        setError('Please select an image file (JPG, PNG, GIF, WebP).')
+        return
+      }
+      setImageFile(file)
+      setImagePreview(URL.createObjectURL(file))
+      setError('')
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      const payload = { ...form, quantity: Number(form.quantity) || 0 }
+      let imageUrl = form.imageUrl
+      if (imageFile) {
+        imageUrl = await fileToDataUrl(imageFile)
+      }
+      const payload = {
+        ...form,
+        quantity: Number(form.quantity) || 0,
+        imageUrl: imageUrl || null,
+      }
       const userName = userProfile?.displayName || user?.email
       if (isEdit) {
         await updateProduct(product.id, payload, user?.uid, userName)
@@ -80,6 +194,50 @@ function ProductForm({ product, onClose, onSaved }) {
           />
         </div>
 
+        <div className="sm:col-span-2">
+          <label className={labelClass}>Product Picture</label>
+          <div className="flex flex-col sm:flex-row gap-4 items-start">
+            <div className="w-full sm:w-36 h-36 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 overflow-hidden flex items-center justify-center shrink-0">
+              {imagePreview ? (
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-gray-300 flex flex-col items-center gap-1.5">
+                  <Icon icon="solar:gallery-linear" className="h-10 w-10" />
+                  <span className="text-xs">No image</span>
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="hidden"
+                  id="product-image-input"
+                />
+                <label
+                  htmlFor="product-image-input"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#11212D] px-4 py-2.5 text-sm font-bold text-white cursor-pointer hover:bg-[#253745] transition-colors"
+                >
+                  <Icon icon="solar:upload-minimalistic-linear" className="h-4 w-4" />
+                  Choose image
+                </label>
+                {imageFile && (
+                  <span className="text-xs text-[#4A5C6A] truncate max-w-[12rem]" title={imageFile.name}>
+                    {imageFile.name}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[#9BA8AB]">JPG, PNG, GIF or WebP. Shown in catalog.</p>
+            </div>
+          </div>
+        </div>
+
         {isEdit && (
           <div>
             <label className={labelClass}>SKU (Read Only)</label>
@@ -103,14 +261,11 @@ function ProductForm({ product, onClose, onSaved }) {
 
         <div>
           <label className={labelClass}>Size</label>
-          <select
+          <SizeDropdown
             value={form.size}
-            onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))}
-            className={inputClass}
-            aria-label="Size"
-          >
-            {SIZES.map((s) => (<option key={s} value={s}>{s}</option>))}
-          </select>
+            options={SIZES}
+            onChange={(size) => setForm((f) => ({ ...f, size }))}
+          />
         </div>
 
         <div>
@@ -163,13 +318,24 @@ function ProductForm({ product, onClose, onSaved }) {
   )
 }
 
+const PAGE_SIZE = 5
+
 // --- Main Products Component ---
 export default function Products() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [modal, setModal] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
   const { user, userProfile } = useAuth()
+
+  const totalPages = Math.max(1, Math.ceil(products.length / PAGE_SIZE))
+  const start = (currentPage - 1) * PAGE_SIZE
+  const paginatedProducts = products.slice(start, start + PAGE_SIZE)
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages >= 1) setCurrentPage(totalPages)
+  }, [currentPage, totalPages])
 
   const load = async () => {
     setLoading(true)
@@ -238,6 +404,7 @@ export default function Products() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-gray-50 bg-gray-50/50">
+                  <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.15em] text-[#4A5C6A] w-20">Image</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.15em] text-[#4A5C6A]">Product Detail</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.15em] text-[#4A5C6A]">Category</th>
                   <th className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.15em] text-[#4A5C6A]">Variants</th>
@@ -246,11 +413,24 @@ export default function Products() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {products.map((p) => {
+                {paginatedProducts.map((p) => {
                   const status = getStockStatus(p.quantity)
                   const cfg = STATUS_CONFIG[status]
                   return (
                     <tr key={p.id} className="group transition-colors hover:bg-gray-50/50">
+                      <td className="px-6 py-4">
+                        <div className="w-14 h-14 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
+                          {p.imageUrl ? (
+                            <img
+                              src={p.imageUrl}
+                              alt={p.dressName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Icon icon="solar:gallery-linear" className="h-6 w-6 text-gray-300" />
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-[#11212D]">{p.dressName}</span>
@@ -297,29 +477,62 @@ export default function Products() {
             </table>
           </div>
         )}
+
+        {/* Pagination — only when there are products */}
+        {!loading && products.length > 0 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 border-t border-gray-100 bg-gray-50/30">
+            <p className="text-xs font-medium text-[#4A5C6A]">
+              Showing <span className="font-bold text-[#11212D]">{start + 1}</span>–<span className="font-bold text-[#11212D]">{Math.min(start + PAGE_SIZE, products.length)}</span> of <span className="font-bold text-[#11212D]">{products.length}</span> products
+            </p>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage <= 1}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-[#4A5C6A] hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                aria-label="Previous page"
+              >
+                <Icon icon="solar:alt-arrow-left-linear" className="h-5 w-5" />
+              </button>
+              <span className="min-w-[6rem] text-center text-sm font-medium text-[#11212D]">
+                Page {currentPage} of {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
+                className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-[#4A5C6A] hover:bg-gray-50 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+                aria-label="Next page"
+              >
+                <Icon icon="solar:alt-arrow-right-linear" className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
       </Card>
 
-      {/* Product Modal - responsive for all devices */}
+      {/* Product Modal - responsive, no header overlap */}
       {modal && (
         <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-0 sm:p-4">
           <div className="absolute inset-0 bg-[#11212D]/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setModal(null)} aria-hidden="true" />
-          <div className="relative w-full max-w-xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 flex flex-col overflow-hidden">
-            <div className="shrink-0 flex items-start justify-between gap-4 p-4 sm:p-6 lg:p-8 pb-0 sm:pb-0">
-              <div className="min-w-0">
-                <h2 className="text-xl sm:text-2xl font-bold text-[#11212D]">{modal === 'add' ? 'New Product' : 'Edit Details'}</h2>
-                <p className="mt-0.5 text-xs sm:text-sm text-[#4A5C6A]">Enter information for the inventory record.</p>
+          <div className="relative w-full max-w-lg h-[85dvh] sm:h-auto sm:max-h-[85vh] rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 flex flex-col overflow-hidden">
+            <div className="shrink-0 flex items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-100">
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg sm:text-xl font-bold text-[#11212D] truncate">{modal === 'add' ? 'New Product' : 'Edit Details'}</h2>
+                <p className="mt-0.5 text-xs text-[#4A5C6A] hidden sm:block">Enter information for the inventory record.</p>
               </div>
               <button
                 type="button"
                 onClick={() => setModal(null)}
-                className="shrink-0 rounded-full p-2 hover:bg-gray-100 text-[#4A5C6A] touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                className="shrink-0 rounded-full p-2 hover:bg-gray-100 text-[#4A5C6A] touch-manipulation h-10 w-10 flex items-center justify-center"
                 aria-label="Close"
               >
-                <Icon icon="solar:close-circle-linear" className="h-6 w-6 sm:h-7 sm:w-7" />
+                <Icon icon="solar:close-circle-linear" className="h-5 w-5 sm:h-6 sm:w-6" />
               </button>
             </div>
-            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 lg:p-8 pt-4">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6">
               <ProductForm
+                key={modal === 'add' ? 'add' : modal.id}
                 product={modal === 'add' ? null : modal}
                 onClose={() => setModal(null)}
                 onSaved={load}

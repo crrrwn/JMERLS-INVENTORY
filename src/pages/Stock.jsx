@@ -1,9 +1,108 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Icon } from '@iconify/react'
 import Card from '../components/ui/Card'
 import { getProducts } from '../services/products'
 import { getStockLogs, recordStockIn, recordStockOut, recordSale } from '../services/stock'
 import { useAuth } from '../context/AuthContext'
+
+/** Custom product dropdown — styled open state (no browser default blue) */
+function ProductDropdown({ productList, tab, value, onChange }) {
+  const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
+  const wrapperRef = useRef(null)
+  const filtered = search.trim()
+    ? productList.filter(
+        (p) =>
+          (p.dressName || '').toLowerCase().includes(search.toLowerCase()) ||
+          (p.sku || '').toLowerCase().includes(search.toLowerCase()) ||
+          (p.color || '').toLowerCase().includes(search.toLowerCase())
+      )
+    : productList
+  const list = tab === 'sale' ? filtered.filter((p) => p.quantity > 0) : filtered
+  const selected = productList.find((p) => p.id === value)
+
+  useEffect(() => {
+    const fn = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="select-input w-full text-left flex items-center justify-between gap-2"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <span className={selected ? 'text-[#11212D] font-medium' : 'text-[#9BA8AB]'}>
+          {selected
+            ? `${selected.dressName} (${selected.sku})${selected.color ? ` · ${selected.color}` : ''} — ${selected.quantity} in stock`
+            : 'Search or select product...'}
+        </span>
+        <Icon
+          icon="solar:alt-arrow-down-linear"
+          className={`h-5 w-5 shrink-0 text-[#4A5C6A] transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <div
+          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-gray-200 bg-white py-2 shadow-xl shadow-[#11212D]/10 max-h-64 overflow-hidden flex flex-col"
+          role="listbox"
+        >
+          <div className="px-3 pb-2 border-b border-gray-100">
+            <input
+              type="text"
+              placeholder="Type to filter..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.stopPropagation()}
+              className="w-full rounded-lg border border-gray-200 bg-gray-50/50 px-3 py-2 text-sm text-[#11212D] placeholder:text-[#9BA8AB] focus:border-[#11212D] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#11212D]/10"
+            />
+          </div>
+          <div className="overflow-y-auto overscroll-contain py-1">
+            {list.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-[#9BA8AB]">No products match</div>
+            ) : (
+              list.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  role="option"
+                  aria-selected={value === p.id}
+                  onClick={() => {
+                    onChange(p.id)
+                    setOpen(false)
+                    setSearch('')
+                  }}
+                  className={`w-full px-4 py-3 text-left text-sm transition-colors flex items-center gap-3 ${
+                    value === p.id
+                      ? 'bg-[#11212D]/5 text-[#11212D] font-medium'
+                      : 'text-[#4A5C6A] hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="h-8 w-8 shrink-0 rounded-md border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center">
+                    {p.imageUrl ? (
+                      <img src={p.imageUrl} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <Icon icon="solar:gallery-linear" className="h-4 w-4 text-gray-300" />
+                    )}
+                  </div>
+                  <span className="min-w-0 truncate">
+                    {p.dressName} ({p.sku}){p.color ? ` · ${p.color}` : ''} — In Stock: {p.quantity}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 const TAB_CONFIG = {
   in: { label: 'Stock In', icon: 'solar:import-linear', color: 'text-emerald-600', bg: 'bg-emerald-50', btn: 'bg-emerald-600 hover:bg-emerald-700' },
@@ -106,22 +205,36 @@ export default function Stock() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-[#4A5C6A] mb-2 block">Select Product</label>
-                    <div className="relative group">
-                      <select
-                        value={form.productId}
-                        onChange={(e) => setForm((f) => ({ ...f, productId: e.target.value }))}
-                        className="w-full appearance-none rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-3.5 text-sm transition-all focus:border-[#11212D] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#11212D]/5"
-                        required
-                      >
-                        <option value="">Search or select product...</option>
-                        {(tab === 'sale' ? productList.filter(p => p.quantity > 0) : productList).map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.dressName} ({p.sku}) — In Stock: {p.quantity}
-                          </option>
-                        ))}
-                      </select>
-                      <Icon icon="solar:alt-arrow-down-linear" className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 pointer-events-none text-[#9BA8AB]" />
-                    </div>
+                    <ProductDropdown
+                      productList={productList}
+                      tab={tab}
+                      value={form.productId}
+                      onChange={(id) => setForm((f) => ({ ...f, productId: id }))}
+                    />
+                    {form.productId && (() => {
+                      const selected = productList.find((p) => p.id === form.productId)
+                      if (!selected) return null
+                      return (
+                        <div className="mt-3 flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/50 p-3">
+                          <div className="h-14 w-14 shrink-0 rounded-lg border border-gray-100 bg-white overflow-hidden flex items-center justify-center">
+                            {selected.imageUrl ? (
+                              <img src={selected.imageUrl} alt={selected.dressName} className="h-full w-full object-cover" />
+                            ) : (
+                              <Icon icon="solar:gallery-linear" className="h-6 w-6 text-gray-300" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold text-[#11212D] truncate">{selected.dressName}</p>
+                            <p className="text-xs font-mono text-[#9BA8AB]">{selected.sku} · {selected.quantity} in stock</p>
+                            {selected.color && (
+                              <p className="text-xs font-medium text-[#4A5C6A] mt-0.5">
+                                Color: <span className="font-bold text-[#11212D]">{selected.color}</span>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -187,30 +300,43 @@ export default function Stock() {
               <div className="overflow-hidden">
                 <ul className="relative space-y-1 before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-gray-200 before:via-gray-100 before:to-transparent">
                   {logs.slice(0, tab === 'logs' ? 100 : 8).map((log) => {
-                    const cfg = TAB_CONFIG[log.type] || TAB_CONFIG.logs;
+                    const cfg = TAB_CONFIG[log.type] || TAB_CONFIG.logs
+                    const logProduct = productList.find((p) => p.id === log.productId)
                     return (
                       <li key={log.id} className="relative group pl-12 py-4 hover:bg-gray-50/50 rounded-2xl transition-colors">
                         <div className={`absolute left-2.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full ring-4 ring-white shadow-sm ${cfg.bg} ${cfg.color}`}>
                           <Icon icon={cfg.icon} className="h-3.5 w-3.5" />
                         </div>
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <div>
-                            <p className="text-sm font-bold text-[#11212D]">
-                              {log.type === 'in' ? 'Stock Added' : log.type === 'sale' ? 'Item Sold' : 'Stock Removed'}: 
-                              <span className="ml-1 font-medium">{log.productName}</span>
-                            </p>
-                            <p className="text-[11px] font-medium text-[#4A5C6A]">
-                              By {log.userName} • {log.quantity} units 
-                              {log.reason && <span className="italic"> ({log.reason})</span>}
-                              {log.revenue != null && <span className="ml-2 font-bold text-emerald-600">₱{log.revenue.toLocaleString()}</span>}
-                            </p>
+                          <div className="flex items-start gap-3 min-w-0">
+                            <div className="h-10 w-10 shrink-0 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center">
+                              {logProduct?.imageUrl ? (
+                                <img src={logProduct.imageUrl} alt={log.productName} className="h-full w-full object-cover" />
+                              ) : (
+                                <Icon icon="solar:gallery-linear" className="h-4 w-4 text-gray-300" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-[#11212D]">
+                                {log.type === 'in' ? 'Stock Added' : log.type === 'sale' ? 'Item Sold' : 'Stock Removed'}: 
+                                <span className="ml-1 font-medium">{log.productName}</span>
+                                {logProduct?.color && (
+                                  <span className="ml-1.5 text-xs font-normal text-[#4A5C6A]">({logProduct.color})</span>
+                                )}
+                              </p>
+                              <p className="text-[11px] font-medium text-[#4A5C6A]">
+                                By {log.userName} • {log.quantity} units 
+                                {log.reason && <span className="italic"> ({log.reason})</span>}
+                                {log.revenue != null && <span className="ml-2 font-bold text-emerald-600">₱{log.revenue.toLocaleString()}</span>}
+                              </p>
+                            </div>
                           </div>
-                          <span className="text-[10px] font-bold text-[#9BA8AB] uppercase">
+                          <span className="text-[10px] font-bold text-[#9BA8AB] uppercase shrink-0 sm:ml-2">
                             {log.createdAt ? new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                           </span>
                         </div>
                       </li>
-                    );
+                    )
                   })}
                 </ul>
               </div>

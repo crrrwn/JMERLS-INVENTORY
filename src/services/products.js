@@ -7,10 +7,7 @@ import {
   getDocs,
   getDoc,
   query,
-  where,
   orderBy,
-  limit,
-  writeBatch,
 } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { logAction } from './logs'
@@ -46,7 +43,7 @@ export async function searchProducts(term, filters = {}) {
 }
 
 export async function createProduct(data, userId, userName) {
-  const ref = await addDoc(collection(db, COLL), {
+  const docRef = await addDoc(collection(db, COLL), {
     sku: data.sku || `PRD-${Date.now()}`,
     dressName: data.dressName || '',
     category: data.category || '',
@@ -55,6 +52,7 @@ export async function createProduct(data, userId, userName) {
     quantity: Number(data.quantity) || 0,
     costPrice: Number(data.costPrice) || 0,
     sellingPrice: Number(data.sellingPrice) || 0,
+    imageUrl: data.imageUrl || null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   })
@@ -63,9 +61,9 @@ export async function createProduct(data, userId, userName) {
     userId,
     userName,
     details: `Added product: ${data.dressName || data.sku}`,
-    targetId: ref.id,
+    targetId: docRef.id,
   })
-  return ref.id
+  return docRef.id
 }
 
 export async function updateProduct(id, data, userId, userName) {

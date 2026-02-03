@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Icon } from '@iconify/react'
 import Card from '../components/ui/Card'
@@ -12,7 +12,70 @@ const STATUS_CONFIG = {
 }
 
 const filterLabelClass = "text-[10px] font-bold uppercase tracking-widest text-[#4A5C6A] mb-2 block";
-const selectClass = "w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2.5 text-sm transition-all focus:border-[#11212D] focus:bg-white focus:outline-none focus:ring-4 focus:ring-[#11212D]/5";
+const inputClass = "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-[#11212D] transition-all placeholder:text-[#9BA8AB] focus:border-[#11212D] focus:outline-none focus:ring-4 focus:ring-[#11212D]/10 min-h-[48px] sm:min-h-0";
+
+/** Custom category dropdown — styled open state (no browser default blue) */
+function CategoryDropdown({ value, options, onChange }) {
+  const [open, setOpen] = useState(false)
+  const wrapperRef = useRef(null)
+  useEffect(() => {
+    const fn = (e) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+  const label = value ? value : 'All Categories'
+  return (
+    <div ref={wrapperRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="select-input w-full text-left flex items-center justify-between gap-2"
+        aria-expanded={open}
+        aria-haspopup="listbox"
+      >
+        <span className={value ? 'text-[#11212D] font-medium' : 'text-[#4A5C6A]'}>{label}</span>
+        <Icon
+          icon="solar:alt-arrow-down-linear"
+          className={`h-5 w-5 shrink-0 text-[#4A5C6A] transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+      {open && (
+        <div
+          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-gray-200 bg-white py-2 shadow-xl shadow-[#11212D]/10 max-h-56 overflow-y-auto"
+          role="listbox"
+        >
+          <button
+            type="button"
+            role="option"
+            aria-selected={!value}
+            onClick={() => { onChange(''); setOpen(false) }}
+            className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+              !value ? 'bg-[#11212D]/5 text-[#11212D] font-medium' : 'text-[#4A5C6A] hover:bg-gray-50'
+            }`}
+          >
+            All Categories
+          </button>
+          {options.map((c) => (
+            <button
+              key={c}
+              type="button"
+              role="option"
+              aria-selected={value === c}
+              onClick={() => { onChange(c); setOpen(false) }}
+              className={`w-full px-4 py-3 text-left text-sm transition-colors ${
+                value === c ? 'bg-[#11212D]/5 text-[#11212D] font-medium' : 'text-[#4A5C6A] hover:bg-gray-50'
+              }`}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function Search() {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -95,7 +158,7 @@ export default function Search() {
                     placeholder="SKU, name..."
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    className={`${selectClass} pl-9`}
+                    className={`${inputClass} pl-9`}
                   />
                 </div>
               </div>
@@ -103,10 +166,11 @@ export default function Search() {
               {/* Category Select */}
               <div>
                 <label className={filterLabelClass}>Category</label>
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className={selectClass}>
-                  <option value="">All Categories</option>
-                  {categories.map((c) => (<option key={c} value={c}>{c}</option>))}
-                </select>
+                <CategoryDropdown
+                  value={category}
+                  options={categories}
+                  onChange={setCategory}
+                />
               </div>
 
               {/* Size Select */}
@@ -137,7 +201,7 @@ export default function Search() {
                   placeholder="e.g. Navy Blue"
                   value={color}
                   onChange={(e) => setColor(e.target.value)}
-                  className={selectClass}
+                  className={inputClass}
                 />
               </div>
 
@@ -191,38 +255,45 @@ export default function Search() {
                 return (
                   <div
                     key={p.id}
-                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 transition-all hover:shadow-xl hover:shadow-[#11212D]/5 hover:-translate-y-1"
+                    className="group relative flex flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all hover:shadow-xl hover:shadow-[#11212D]/5 hover:-translate-y-1"
                   >
-                    <div className="mb-4 flex items-start justify-between">
-                      <div className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cfg.color}`}>
-                        {cfg.label}
-                      </div>
-                      <span className="text-[10px] font-mono font-bold text-[#9BA8AB]">{p.sku}</span>
+                    <div className="aspect-square w-full bg-gray-50 overflow-hidden flex items-center justify-center">
+                      {p.imageUrl ? (
+                        <img src={p.imageUrl} alt={p.dressName} className="w-full h-full object-cover" />
+                      ) : (
+                        <Icon icon="solar:gallery-linear" className="h-12 w-12 text-gray-300" />
+                      )}
                     </div>
-                    
-                    <h3 className="text-base font-bold text-[#11212D] group-hover:text-[#4A5C6A] transition-colors">
-                      {p.dressName}
-                    </h3>
-                    
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-[#4A5C6A]">
-                      <Icon icon="solar:tag-linear" className="h-3.5 w-3.5" />
-                      {p.category}
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between border-t border-gray-50 pt-4">
-                      <div className="flex gap-2">
-                        <span className="flex items-center justify-center rounded-md bg-gray-100 px-2 py-1 text-[10px] font-bold text-[#11212D]">
-                          {p.size}
-                        </span>
-                        {p.color && (
-                           <span className="flex items-center justify-center rounded-md bg-gray-100 px-2 py-1 text-[10px] font-bold text-[#11212D]">
-                           {p.color}
-                         </span>
-                        )}
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="mb-3 flex items-start justify-between">
+                        <div className={`rounded-lg border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${cfg.color}`}>
+                          {cfg.label}
+                        </div>
+                        <span className="text-[10px] font-mono font-bold text-[#9BA8AB]">{p.sku || '—'}</span>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[10px] font-bold uppercase text-[#9BA8AB]">Stock</p>
-                        <p className="text-sm font-black text-[#11212D]">{p.quantity}</p>
+                      
+                      <h3 className="text-base font-bold text-[#11212D] group-hover:text-[#4A5C6A] transition-colors">
+                        {p.dressName || 'Untitled'}
+                      </h3>
+                      <div className="mt-1 flex items-center gap-1.5 text-xs text-[#4A5C6A]">
+                        <Icon icon="solar:tag-linear" className="h-3.5 w-3.5 shrink-0" />
+                        <span>{p.category || 'Uncategorized'}</span>
+                      </div>
+                      <div className="mt-4 flex items-center justify-between border-t border-gray-50 pt-4 mt-auto">
+                        <div className="flex gap-2">
+                          <span className="flex items-center justify-center rounded-md bg-gray-100 px-2 py-1 text-[10px] font-bold text-[#11212D]">
+                            {p.size || '—'}
+                          </span>
+                          {p.color && (
+                             <span className="flex items-center justify-center rounded-md bg-gray-100 px-2 py-1 text-[10px] font-bold text-[#11212D]">
+                             {p.color}
+                           </span>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[10px] font-bold uppercase text-[#9BA8AB]">Stock</p>
+                          <p className="text-sm font-black text-[#11212D]">{p.quantity ?? 0}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
