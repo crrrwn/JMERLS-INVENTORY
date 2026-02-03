@@ -55,10 +55,10 @@ export default function ForgotPassword() {
       <div className="flex w-full flex-col justify-center bg-[#11212D] px-6 py-12 sm:px-12 lg:w-[55%] lg:px-24">
         <div className="mx-auto w-full max-w-[420px]">
           
-          {/* Logo/Brand for Mobile */}
-          <div className="mb-10 flex items-center gap-3 lg:hidden">
-            <img src="/JMERLSLOGO.png" alt="JMERLS" className="h-12 w-12 shrink-0 rounded-xl object-contain outline-none [border:none]" />
-            <h1 className="font-sans text-2xl font-bold uppercase tracking-tighter text-white">JMERLS</h1>
+          {/* Logo/Brand for Mobile - logo on top, name below, centered */}
+          <div className="mb-10 flex flex-col items-center justify-center gap-2 lg:hidden">
+            <img src="/JMERLSLOGO.png" alt="JMERLS Fashion" className="h-16 w-16 shrink-0 rounded-xl object-contain outline-none [border:none]" />
+            <h1 className="font-sans text-xl font-bold uppercase tracking-tighter text-white text-center">JMERLS FASHION</h1>
           </div>
 
           <header className="mb-10 animate-in slide-in-from-top-4 duration-500">

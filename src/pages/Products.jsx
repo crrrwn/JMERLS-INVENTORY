@@ -58,15 +58,15 @@ function ProductForm({ product, onClose, onSaved }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 animate-in fade-in zoom-in duration-300">
+        <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 sm:p-4 text-sm text-red-700 animate-in fade-in zoom-in duration-300">
           <Icon icon="solar:danger-circle-bold" className="h-5 w-5 shrink-0" />
           {error}
         </div>
       )}
-      
-      <div className="grid gap-5 sm:grid-cols-2">
+
+      <div className="grid gap-4 sm:gap-5 grid-cols-1 sm:grid-cols-2">
         <div className={isEdit ? '' : 'sm:col-span-2'}>
           <label className={labelClass}>Product Name</label>
           <input
@@ -76,13 +76,14 @@ function ProductForm({ product, onClose, onSaved }) {
             className={inputClass}
             placeholder="e.g. Floral Summer Maxi"
             required
+            autoComplete="off"
           />
         </div>
 
         {isEdit && (
           <div>
             <label className={labelClass}>SKU (Read Only)</label>
-            <div className="flex h-[46px] items-center rounded-xl border border-gray-100 bg-gray-100/50 px-4 text-sm font-mono text-[#4A5C6A]">
+            <div className="flex min-h-[48px] items-center rounded-xl border border-gray-100 bg-gray-100/50 px-4 text-sm font-mono text-[#4A5C6A]">
               {form.sku}
             </div>
           </div>
@@ -96,6 +97,7 @@ function ProductForm({ product, onClose, onSaved }) {
             onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
             className={inputClass}
             placeholder="e.g. Dresses"
+            autoComplete="off"
           />
         </div>
 
@@ -105,6 +107,7 @@ function ProductForm({ product, onClose, onSaved }) {
             value={form.size}
             onChange={(e) => setForm((f) => ({ ...f, size: e.target.value }))}
             className={inputClass}
+            aria-label="Size"
           >
             {SIZES.map((s) => (<option key={s} value={s}>{s}</option>))}
           </select>
@@ -118,6 +121,7 @@ function ProductForm({ product, onClose, onSaved }) {
             onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
             className={inputClass}
             placeholder="e.g. Pastel Blue"
+            autoComplete="off"
           />
         </div>
 
@@ -129,22 +133,23 @@ function ProductForm({ product, onClose, onSaved }) {
             value={form.quantity}
             onChange={(e) => setForm((f) => ({ ...f, quantity: e.target.value }))}
             className={inputClass}
+            inputMode="numeric"
           />
         </div>
       </div>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end border-t border-gray-100 pt-6">
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end border-t border-gray-100 pt-5 sm:pt-6">
         <button
           type="button"
           onClick={onClose}
-          className="rounded-xl px-6 py-3 text-sm font-bold text-[#4A5C6A] transition-colors hover:bg-gray-100"
+          className="w-full sm:w-auto rounded-xl px-6 py-3.5 sm:py-3 text-sm font-bold text-[#4A5C6A] transition-colors hover:bg-gray-100 touch-manipulation min-h-[48px] sm:min-h-0"
         >
           Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center justify-center gap-2 rounded-xl bg-[#11212D] px-8 py-3 text-sm font-bold text-white shadow-lg shadow-[#11212D]/20 transition-all hover:bg-[#253745] active:scale-95 disabled:opacity-50"
+          className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-[#11212D] px-8 py-3.5 sm:py-3 text-sm font-bold text-white shadow-lg shadow-[#11212D]/20 transition-all hover:bg-[#253745] active:scale-[0.98] disabled:opacity-50 touch-manipulation min-h-[48px] sm:min-h-0"
         >
           {loading ? (
             <Icon icon="svg-spinners:ring-resize" className="h-5 w-5" />
@@ -294,25 +299,32 @@ export default function Products() {
         )}
       </Card>
 
-      {/* Product Modal */}
+      {/* Product Modal - responsive for all devices */}
       {modal && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#11212D]/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setModal(null)} />
-          <div className="relative w-full max-w-xl rounded-3xl bg-white p-8 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-            <div className="mb-6 flex items-center justify-between">
-              <div>
-                <h2 className="text-2xl font-bold text-[#11212D]">{modal === 'add' ? 'New Product' : 'Edit Details'}</h2>
-                <p className="text-sm text-[#4A5C6A]">Enter information for the inventory record.</p>
+        <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-0 sm:p-4">
+          <div className="absolute inset-0 bg-[#11212D]/40 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setModal(null)} aria-hidden="true" />
+          <div className="relative w-full max-w-xl max-h-[92dvh] sm:max-h-[90vh] rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 flex flex-col overflow-hidden">
+            <div className="shrink-0 flex items-start justify-between gap-4 p-4 sm:p-6 lg:p-8 pb-0 sm:pb-0">
+              <div className="min-w-0">
+                <h2 className="text-xl sm:text-2xl font-bold text-[#11212D]">{modal === 'add' ? 'New Product' : 'Edit Details'}</h2>
+                <p className="mt-0.5 text-xs sm:text-sm text-[#4A5C6A]">Enter information for the inventory record.</p>
               </div>
-              <button onClick={() => setModal(null)} className="rounded-full p-2 hover:bg-gray-100 text-[#4A5C6A]">
-                <Icon icon="solar:close-circle-linear" className="h-7 w-7" />
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="shrink-0 rounded-full p-2 hover:bg-gray-100 text-[#4A5C6A] touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+                aria-label="Close"
+              >
+                <Icon icon="solar:close-circle-linear" className="h-6 w-6 sm:h-7 sm:w-7" />
               </button>
             </div>
-            <ProductForm
-              product={modal === 'add' ? null : modal}
-              onClose={() => setModal(null)}
-              onSaved={load}
-            />
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 lg:p-8 pt-4">
+              <ProductForm
+                product={modal === 'add' ? null : modal}
+                onClose={() => setModal(null)}
+                onSaved={load}
+              />
+            </div>
           </div>
         </div>
       )}

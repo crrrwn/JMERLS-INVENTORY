@@ -73,10 +73,10 @@ export default function Register() {
       <div className="flex w-full flex-col justify-center bg-[#11212D] px-6 py-12 sm:px-12 lg:w-[55%] lg:px-24">
         <div className="mx-auto w-full max-w-[440px]">
           
-          {/* Logo/Brand for Mobile */}
-          <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <img src="/JMERLSLOGO.png" alt="JMERLS" className="h-10 w-10 shrink-0 rounded-xl object-cover outline-none [border:none]" />
-            <h1 className="text-xl font-bold text-white tracking-tight">JMERLS</h1>
+          {/* Logo/Brand for Mobile - logo on top, name below, centered */}
+          <div className="mb-8 flex flex-col items-center justify-center gap-2 lg:hidden">
+            <img src="/JMERLSLOGO.png" alt="JMERLS Fashion" className="h-16 w-16 shrink-0 rounded-xl object-contain outline-none [border:none]" />
+            <h1 className="text-lg font-bold text-white tracking-tight text-center">JMERLS FASHION</h1>
           </div>
 
           <header className="mb-10">

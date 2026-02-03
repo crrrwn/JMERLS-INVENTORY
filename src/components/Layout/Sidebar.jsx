@@ -52,9 +52,7 @@ export default function Sidebar({ open, onClose }) {
         {/* Brand Header */}
         <div className="flex h-20 items-center justify-between px-6">
           <NavLink to="/" className="flex items-center gap-3" onClick={onClose}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#4A5C6A] to-[#253745] p-1 shadow-inner ring-1 ring-[#9BA8AB]/20">
-              <img src="/JMERLSLOGO.png" alt="JMERLS" className="h-full w-full object-contain" />
-            </div>
+            <img src="/JMERLSLOGO.png" alt="JMERLS" className="h-10 w-10 shrink-0 rounded-xl object-contain border-0 outline-none" />
             <span className="text-xl font-bold tracking-tight text-white">JMERLS</span>
           </NavLink>
           <button 
