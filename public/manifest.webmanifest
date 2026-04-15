@@ -1,0 +1,24 @@
+{
+  "name": "JMERLS FASHION | Inventory",
+  "short_name": "JMERLS",
+  "description": "Inventory management for JMERLS Fashion",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#11212D",
+  "icons": [
+    {
+      "src": "/JMERLSLOGO.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/JMERLSLOGO.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
